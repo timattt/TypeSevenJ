@@ -1,0 +1,20 @@
+version: '3.4'
+
+services:
+  type-7-database:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_IP: localhost
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "db_prod" ]
+      interval: 1s
+      timeout: 1s
+      retries: 100
+    user: postgres
+    volumes:
+      - ./sql/:/docker-entrypoint-initdb.d/

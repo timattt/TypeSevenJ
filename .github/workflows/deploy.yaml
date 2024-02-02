@@ -1,0 +1,48 @@
+name: deploy-type-7-j
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "release"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          #registry: specify registry here if needed
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: timattt/type-7-j:latest
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: bitnami/kubectl
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run k8s
+        run: |
+          kubectl config set-cluster k8s --server=${{ secrets.KUBERNETES_URL }} --insecure-skip-tls-verify=true
+          kubectl config set-credentials admin --token=${{ secrets.KUBERNETES_SECRET }}
+          kubectl config set-context default --cluster=k8s --user=admin
+          kubectl config use-context default          
+          kubectl get pod -A
+          kubectl delete --ignore-not-found=true -f scripts/k8s/type-7-j.yaml
+          kubectl apply -f scripts/k8s/type-7-j.yaml
+          kubectl get pod -A
